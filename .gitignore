@@ -1,0 +1,13 @@
+build/
+cmake-build-*/
+.cache/
+.idea/
+.vscode/
+*.o
+*.a
+*.so
+*.user
+compile_commands.json
+.axiom-autosave
+*.axm~
+third_party/imgui/.git
