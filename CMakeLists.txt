@@ -18,25 +18,47 @@ endif()
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLFW REQUIRED glfw3)
 
-add_library(glad STATIC third_party/glad/src/gl.c)
-target_include_directories(glad PUBLIC third_party/glad/include)
+include(FetchContent)
+
+set(AXIOM_GLAD_DIR "${CMAKE_SOURCE_DIR}/third_party/glad")
+if(NOT EXISTS "${AXIOM_GLAD_DIR}/src/gl.c")
+  message(FATAL_ERROR
+    "Vendored GLAD is missing (${AXIOM_GLAD_DIR}/src/gl.c). "
+    "Run scripts/fetch-deps.sh from a network-connected clone.")
+endif()
+
+add_library(glad STATIC "${AXIOM_GLAD_DIR}/src/gl.c")
+target_include_directories(glad PUBLIC "${AXIOM_GLAD_DIR}/include")
 target_compile_features(glad PUBLIC c_std_99)
 
+set(AXIOM_IMGUI_DIR "${CMAKE_SOURCE_DIR}/third_party/imgui")
+if(NOT EXISTS "${AXIOM_IMGUI_DIR}/imgui.cpp")
+  FetchContent_Declare(imgui
+    URL https://github.com/ocornut/imgui/archive/refs/tags/v1.91.8.tar.gz
+    URL_HASH SHA256=db3a2e02bfd6c269adf0968950573053d002f40bdfb9ef2e4a90bce804b0f286
+  )
+  FetchContent_GetProperties(imgui)
+  if(NOT imgui_POPULATED)
+    FetchContent_Populate(imgui)
+  endif()
+  set(AXIOM_IMGUI_DIR "${imgui_SOURCE_DIR}")
+endif()
+
 add_library(imgui STATIC
-  third_party/imgui/imgui.cpp
-  third_party/imgui/imgui_draw.cpp
-  third_party/imgui/imgui_tables.cpp
-  third_party/imgui/imgui_widgets.cpp
-  third_party/imgui/backends/imgui_impl_glfw.cpp
-  third_party/imgui/backends/imgui_impl_opengl3.cpp
+  "${AXIOM_IMGUI_DIR}/imgui.cpp"
+  "${AXIOM_IMGUI_DIR}/imgui_draw.cpp"
+  "${AXIOM_IMGUI_DIR}/imgui_tables.cpp"
+  "${AXIOM_IMGUI_DIR}/imgui_widgets.cpp"
+  "${AXIOM_IMGUI_DIR}/backends/imgui_impl_glfw.cpp"
+  "${AXIOM_IMGUI_DIR}/backends/imgui_impl_opengl3.cpp"
 )
 target_include_directories(imgui PUBLIC
-  third_party/imgui
-  third_party/imgui/backends
+  "${AXIOM_IMGUI_DIR}"
+  "${AXIOM_IMGUI_DIR}/backends"
 )
 target_link_libraries(imgui PUBLIC glad ${GLFW_LIBRARIES})
 target_compile_definitions(imgui PUBLIC GLFW_INCLUDE_NONE)
-target_include_directories(imgui PUBLIC ${GLFW_INCLUDE_DIRS} third_party/glad/include)
+target_include_directories(imgui PUBLIC ${GLFW_INCLUDE_DIRS} "${AXIOM_GLAD_DIR}/include")
 
 add_executable(axiom
   src/main.cpp
@@ -63,4 +85,11 @@ target_link_libraries(axiom PRIVATE imgui glad ${GLFW_LIBRARIES} GL dl pthread)
 target_link_directories(axiom PRIVATE ${GLFW_LIBRARY_DIRS})
 
 install(TARGETS axiom RUNTIME DESTINATION bin)
-install(FILES examples/bracket.axm examples/pulley.axm examples/housing.axm examples/flange.axm examples/assembly.axm examples/handle.axm examples/tray.axm examples/spring.axm examples/gear.axm examples/ribbed.axm examples/elbow.axm examples/coupling.axm examples/pillow.axm examples/vblock.axm examples/hanger.axm DESTINATION share/axiom/examples OPTIONAL)
+install(FILES
+  examples/bracket.axm examples/pulley.axm examples/housing.axm
+  examples/flange.axm examples/assembly.axm examples/handle.axm
+  examples/tray.axm examples/spring.axm examples/gear.axm
+  examples/ribbed.axm examples/elbow.axm examples/coupling.axm
+  examples/pillow.axm examples/vblock.axm examples/hanger.axm
+  examples/box-fillet.axm
+  DESTINATION share/axiom/examples OPTIONAL)

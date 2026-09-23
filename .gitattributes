@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.axm text
+*.png binary
+*.ppm binary
