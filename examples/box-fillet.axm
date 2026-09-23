@@ -1,0 +1,11 @@
+AXIOM 1
+UNITS mm
+QUALITY 96
+TITLE Box with local top-loop fillet
+FEATURE 1 Box Box NewBody 0 0 0 0 0 0 0 40 30 20 0 20 0 0 1 1 0 0 0 0 2 0 0 0 0
+FEATURE 2 Fillet Fillet Join 0 0 0 20 0 0 1 40 0 20 0 3 0 3 1 1 0 1 0 0 2 1 0 0 0
+EDGECHAIN 2 4
+  0 0 20
+  40 0 20
+  40 30 20
+  0 30 20

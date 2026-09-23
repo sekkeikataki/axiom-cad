@@ -1,0 +1,14 @@
+AXIOM 1
+UNITS mm
+QUALITY 192
+ROLLBACK -1
+MATERIAL 0
+LOAD 25000
+EXPLODE 0
+FEATURE 1 Cylinder Cylinder1 New 0 0 0 0 0 0 0 18 16 0 0 10 0 0 1 1 20 20 360 0 2 0 0
+FEATURE 2 Cylinder Cylinder2 Join 0 0 0 3 0 0 0 42 10 0 0 10 0 0 1 1 20 20 360 0 2 0 0
+FEATURE 3 Cylinder Cylinder3 Cut 0 0 0 -3 0 0 0 7 22 0 0 10 0 0 1 1 20 20 360 0 2 0 0
+FEATURE 4 Cylinder Cylinder4 Cut 0 24 0 1 0 0 0 8 16 0 0 10 0 0 1 1 20 20 360 0 2 0 0
+FEATURE 5 Cylinder Cylinder5 Cut 0 0 24 1 0 0 0 8 16 0 0 10 0 0 1 1 20 20 360 0 2 0 0
+FEATURE 6 Cylinder Cylinder6 Cut 0 -24 0 1 0 0 0 8 16 0 0 10 0 0 1 1 20 20 360 0 2 0 0
+FEATURE 7 Cylinder Cylinder7 Cut 0 0 -24 1 0 0 0 8 16 0 0 10 0 0 1 1 20 20 360 0 2 0 0
