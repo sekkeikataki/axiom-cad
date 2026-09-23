@@ -48,7 +48,6 @@ FaceRef classify_face(const Mesh& m, const Hit& h) {
     f.feature_id = (int)h.feature_id;
     float ax = std::fabs(f.n.x), ay = std::fabs(f.n.y), az = std::fabs(f.n.z);
     f.axis = az >= ax && az >= ay ? 2 : (ay >= ax ? 1 : 0);
-    // refine normal from nearby same-feature triangles
     Vec3 acc = f.n;
     int n = 1;
     for (size_t i = 0; i + 2 < m.indices.size(); i += 3) {
@@ -205,22 +204,14 @@ EdgeRef classify_edge(const Mesh& m, const Hit& h, float crease_deg) {
         }
     }
     if (!e.ok) {
-        // fallback: longest edge of the hit triangle
         if (h.tri * 3 + 2 < m.indices.size()) {
             Vec3 p0 = m.vertices[m.indices[h.tri * 3]].p;
             Vec3 p1 = m.vertices[m.indices[h.tri * 3 + 1]].p;
             Vec3 p2 = m.vertices[m.indices[h.tri * 3 + 2]].p;
             float l01 = (p1 - p0).length2(), l12 = (p2 - p1).length2(), l20 = (p0 - p2).length2();
-            if (l01 >= l12 && l01 >= l20) {
-                e.a = p0;
-                e.b = p1;
-            } else if (l12 >= l20) {
-                e.a = p1;
-                e.b = p2;
-            } else {
-                e.a = p2;
-                e.b = p0;
-            }
+            if (l01 >= l12 && l01 >= l20) { e.a = p0; e.b = p1; }
+            else if (l12 >= l20) { e.a = p1; e.b = p2; }
+            else { e.a = p2; e.b = p0; }
             e.dir = (e.b - e.a).normalized();
             e.ok = true;
         }
@@ -257,10 +248,7 @@ EdgeRef classify_edge(const Mesh& m, const Hit& h, float crease_deg) {
         }
         if (h.n.length2() > 1e-8f && e.n1.dot(h.n) < 0.2f && nn < 2) e.n1 = h.n.normalized();
         if (m.topo_ok) e.id = m.crease_id(e.a, e.b);
-        if (e.id.ok) {
-            e.n1 = e.id.n1;
-            e.n2 = e.id.n2;
-        }
+        if (e.id.ok) { e.n1 = e.id.n1; e.n2 = e.id.n2; }
     }
     (void)crease_deg;
     return e;
@@ -281,12 +269,9 @@ void face_outline(const Mesh& m, const FaceRef& f, std::vector<Vec3>& lines) {
         if (f.feature_id && m.vertices[m.indices[i]].feature_id &&
             (int)m.vertices[m.indices[i]].feature_id != f.feature_id)
             continue;
-        lines.push_back(a);
-        lines.push_back(b);
-        lines.push_back(b);
-        lines.push_back(c);
-        lines.push_back(c);
-        lines.push_back(a);
+        lines.push_back(a); lines.push_back(b);
+        lines.push_back(b); lines.push_back(c);
+        lines.push_back(c); lines.push_back(a);
     }
 }
 
@@ -319,10 +304,7 @@ void section_plane_lines(const Mesh& m, Vec3 n, float d, std::vector<Vec3>& line
 }
 
 static bool tri_aabb_overlap(Vec3 a, Vec3 b, Vec3 c, const Aabb& box) {
-    Aabb t;
-    t.expand(a);
-    t.expand(b);
-    t.expand(c);
+    Aabb t; t.expand(a); t.expand(b); t.expand(c);
     return t.overlaps(box, 0.02f);
 }
 
@@ -333,8 +315,7 @@ int mesh_tri_hits(const Mesh& A, const Mat4& xa, const Mesh& B, const Mat4& xb, 
         for (auto& v : m.vertices) v.p = x.transform_point(v.p);
         m.compute_bounds();
     };
-    xform(wa, xa);
-    xform(wb, xb);
+    xform(wa, xa); xform(wb, xb);
     if (!wa.bounds.valid() || !wb.bounds.valid() || !wa.bounds.overlaps(wb.bounds, 0.05f)) return 0;
     int hits = 0;
     for (size_t i = 0; i + 2 < wa.indices.size() && hits < cap; i += 3) {
@@ -342,25 +323,18 @@ int mesh_tri_hits(const Mesh& A, const Mat4& xa, const Mesh& B, const Mat4& xb, 
         Vec3 b = wa.vertices[wa.indices[i + 1]].p;
         Vec3 c = wa.vertices[wa.indices[i + 2]].p;
         if (!tri_aabb_overlap(a, b, c, wb.bounds)) continue;
-        Aabb ta;
-        ta.expand(a);
-        ta.expand(b);
-        ta.expand(c);
+        Aabb ta; ta.expand(a); ta.expand(b); ta.expand(c);
         for (size_t j = 0; j + 2 < wb.indices.size(); j += 3) {
             Vec3 d = wb.vertices[wb.indices[j]].p;
             Vec3 e = wb.vertices[wb.indices[j + 1]].p;
             Vec3 f = wb.vertices[wb.indices[j + 2]].p;
-            Aabb tb;
-            tb.expand(d);
-            tb.expand(e);
-            tb.expand(f);
+            Aabb tb; tb.expand(d); tb.expand(e); tb.expand(f);
             if (!ta.overlaps(tb, 0.04f)) continue;
             Vec3 n = (b - a).cross(c - a);
             if (n.length2() < 1e-12f) continue;
             float da = n.dot(d - a), db = n.dot(e - a), dc = n.dot(f - a);
             if ((da > 0.06f && db > 0.06f && dc > 0.06f) || (da < -0.06f && db < -0.06f && dc < -0.06f)) continue;
-            ++hits;
-            break;
+            ++hits; break;
         }
     }
     return hits;
@@ -373,20 +347,14 @@ void repair_mesh(Mesh& m) {
     kept.reserve(m.vertices.size());
     auto key = [](Vec3 p) {
         auto q = [](float v) { return (std::int32_t)std::lround(v * 50.f); };
-        return ((std::uint64_t)(std::uint32_t)q(p.x) << 42) ^ ((std::uint64_t)(std::uint32_t)q(p.y) << 21) ^
-               (std::uint32_t)q(p.z);
+        return ((std::uint64_t)(std::uint32_t)q(p.x) << 42) ^ ((std::uint64_t)(std::uint32_t)q(p.y) << 21) ^ (std::uint32_t)q(p.z);
     };
     std::unordered_map<std::uint64_t, int> weld;
     for (size_t i = 0; i < m.vertices.size(); ++i) {
         std::uint64_t k = key(m.vertices[i].p);
         auto it = weld.find(k);
-        if (it != weld.end())
-            map[i] = it->second;
-        else {
-            map[i] = (int)kept.size();
-            weld[k] = map[i];
-            kept.push_back(m.vertices[i]);
-        }
+        if (it != weld.end()) map[i] = it->second;
+        else { map[i] = (int)kept.size(); weld[k] = map[i]; kept.push_back(m.vertices[i]); }
     }
     std::vector<std::uint32_t> idx;
     idx.reserve(m.indices.size());
@@ -395,13 +363,16 @@ void repair_mesh(Mesh& m) {
         if (a < 0 || b < 0 || c < 0 || a == b || b == c || a == c) continue;
         Vec3 pa = kept[a].p, pb = kept[b].p, pc = kept[c].p;
         if ((pb - pa).cross(pc - pa).length2() < 1e-12f) continue;
-        idx.push_back((std::uint32_t)a);
-        idx.push_back((std::uint32_t)b);
-        idx.push_back((std::uint32_t)c);
+        idx.push_back((std::uint32_t)a); idx.push_back((std::uint32_t)b); idx.push_back((std::uint32_t)c);
     }
     m.vertices = std::move(kept);
     m.indices = std::move(idx);
     m.compute_bounds();
     m.compute_smooth_normals();
     m.extract_crease_edges();
+}
+
+static bool voxel_on_face(Vec3 p, Vec3 fp, Vec3 fn, float band) {
+    float d = (p - fp).dot(fn);
+    return std::fabs(d) < band;
 }
