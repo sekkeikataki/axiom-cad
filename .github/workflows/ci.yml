@@ -30,6 +30,27 @@ jobs:
           ./build/axiom --dfm examples/housing.axm
           ./build/axiom --mill examples/housing.axm /tmp/housing.nc --tool 6 --face
           ./build/axiom --turn examples/flange.axm /tmp/flange-turn.nc
+          ./build/axiom --demo sheet >/tmp/sheet.axm
+          ./build/axiom --unfold /tmp/sheet.axm /tmp/sheet-flat.dxf
+          ./build/axiom --demo plate >/tmp/plate.axm
+          ./build/axiom --mill /tmp/plate.axm /tmp/plate.nc --tool 6
+          ./build/axiom --drawing /tmp/plate.axm /tmp/plate-sheet.svg
+          ./build/axiom --drawing examples/assembly.axm /tmp/assy-sheet.svg
+          ./build/axiom --mates examples/assembly.axm /tmp/mates.csv
+          ./build/axiom --bom examples/assembly.axm /tmp/bom.csv
+          ./build/axiom --cutlist examples/hanger.axm /tmp/cutlist.csv
+          ./build/axiom --design-table examples/vblock.axm /tmp/design.csv
+          ./build/axiom --turn /tmp/plate.axm /tmp/plate-turn.nc
+          grep -q G3 /tmp/plate.nc
+          grep -q G83 /tmp/plate.nc
+          grep -q "Thread mill" /tmp/plate.nc
+          grep -q G76 /tmp/plate-turn.nc
+          grep -q PARTS /tmp/assy-sheet.svg
           test -s /tmp/housing-insp.csv
           test -s /tmp/housing.nc
           test -s /tmp/flange-turn.nc
+          test -s /tmp/sheet-flat.dxf
+          test -s /tmp/plate.nc
+          test -s /tmp/mates.csv
+          test -s /tmp/bom.csv
+          test -s /tmp/cutlist.csv
